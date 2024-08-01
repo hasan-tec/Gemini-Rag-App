@@ -91,11 +91,11 @@ st.title("Enhanced Gemini RAG App")
 # Sidebar
 with st.sidebar:
     api_key = st.text_input("Enter your Gemini API Key:", type="password")
-    url = st.text_input("Enter the URL to scrape:")
+    url = st.text_input("Enter the URL to scrape (optional):")
     chunk_size = st.number_input("Chunk size:", min_value=500, max_value=2000, value=1000, step=100)
     overlap = st.number_input("Overlap:", min_value=0, max_value=500, value=100, step=50)
     embedding_model = st.selectbox("Select Embedding Model:", ["embedding-001", "embedding-002"])
-    uploaded_image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+    uploaded_image = st.file_uploader("Upload an image (optional)", type=["jpg", "jpeg", "png"])
 
     if st.button("Scrape and Process"):
         if not api_key or not url:
