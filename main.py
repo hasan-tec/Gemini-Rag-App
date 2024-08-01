@@ -29,20 +29,20 @@ with st.sidebar:
         # ... (rest of the code)
 
 # Main content
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-        .stTextInput {
-            margin-bottom: 10px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+st.markdown(
+    """
+    <style>
+    .stApp {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+    .stTextInput {
+        margin-bottom: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # Initialize chat history
 if 'chat_history' not in st.session_state:
