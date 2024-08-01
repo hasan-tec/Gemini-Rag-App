@@ -114,14 +114,34 @@ with col2:
                 processing_time = time.time() - start_time
                 st.success(f"Processed {len(st.session_state.embeddings)} chunks in {processing_time:.2f} seconds.")
 
-    question = st.text_input("Ask a question about the content:")
-    if st.button("Get Answer"):
-        if not api_key or not question or 'embeddings' not in st.session_state:
-            st.warning("Please make sure you've entered the API key, scraped a URL, and asked a question.")
+    # Initialize chat history
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+
+    # Display chat history
+    st.markdown("**Chat History:**")
+    for message in st.session_state.chat_history:
+        st.write(message)
+
+    # User input
+    question = st.text_input("Ask a question:")
+    if st.button("Ask"):
+        if not api_key or not question:
+            st.warning("Please enter both API key and question.")
         else:
             with st.spinner("Generating answer..."):
-                hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
-                response = query_gemini(api_key, question, hybrid_context)
+                # Add user's question to chat history
+                st.session_state.chat_history.append(f"**User:** {question}")
+
+                # Construct the query with chat history
+                chat_context = "\n".join(st.session_state.chat_history)
+                if 'embeddings' in st.session_state:
+                    hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
+                    query_context = f"{chat_context}\n\n{hybrid_context}"
+                else:
+                    query_context = chat_context
+
+                response = query_gemini(api_key, question, query_context)
 
                 if 'candidates' in response and response['candidates']:
                     try:
@@ -130,6 +150,7 @@ with col2:
                             st.warning("The response was flagged for safety reasons and could not be processed.")
                         else:
                             answer = candidate['content']['parts'][0]['text']
+                            st.session_state.chat_history.append(f"**Model:** {answer}")
                             st.success("Answer generated successfully!")
                             st.write(answer)
                     except KeyError as e:
