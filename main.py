@@ -84,13 +84,12 @@ def get_hybrid_context(chunks, query, api_key):
     return hybrid_context
 
 # Streamlit app
-st.set_page_config(layout="centered", page_title="Enhanced Gemini RAG App")
+st.set_page_config(layout="wide", page_title="Enhanced Gemini RAG App")
 
 st.title("Enhanced Gemini RAG App")
 
-# Center everything
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
+# Sidebar
+with st.sidebar:
     api_key = st.text_input("Enter your Gemini API Key:", type="password")
     url = st.text_input("Enter the URL to scrape:")
     chunk_size = st.number_input("Chunk size:", min_value=500, max_value=2000, value=1000, step=100)
@@ -114,61 +113,63 @@ with col2:
                 processing_time = time.time() - start_time
                 st.success(f"Processed {len(st.session_state.embeddings)} chunks in {processing_time:.2f} seconds.")
 
-    # Initialize chat history
-    if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []
+# Main content
+st.markdown("**Chat History:**")
 
-    # Display chat history
-    st.markdown("**Chat History:**")
-    for message in st.session_state.chat_history:
-        st.write(message)
+# Initialize chat history
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
-    # User input
-    question = st.text_input("Ask a question:")
-    if st.button("Ask"):
-        if not api_key or not question:
-            st.warning("Please enter both API key and question.")
-        else:
-            with st.spinner("Generating answer..."):
-                # Add user's question to chat history
-                st.session_state.chat_history.append(f"**User:** {question}")
+# Display chat history
+for message in st.session_state.chat_history:
+    st.write(message)
 
-                # Construct the query with chat history
-                chat_context = "\n".join(st.session_state.chat_history)
-                if 'embeddings' in st.session_state:
-                    hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
-                    query_context = f"{chat_context}\n\n{hybrid_context}"
-                else:
-                    query_context = chat_context
+# User input
+question = st.text_input("Ask a question:")
+if st.button("Ask"):
+    if not api_key or not question:
+        st.warning("Please enter both API key and question.")
+    else:
+        with st.spinner("Generating answer..."):
+            # Add user's question to chat history
+            st.session_state.chat_history.append(f"**User:** {question}")
 
-                response = query_gemini(api_key, question, query_context)
+            # Construct the query with chat history
+            chat_context = "\n".join(st.session_state.chat_history)
+            if 'embeddings' in st.session_state:
+                hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
+                query_context = f"{chat_context}\n\n{hybrid_context}"
+            else:
+                query_context = chat_context
 
-                if 'candidates' in response and response['candidates']:
-                    try:
-                        candidate = response['candidates'][0]
-                        if candidate.get('finishReason') == 'SAFETY':
-                            st.warning("The response was flagged for safety reasons and could not be processed.")
-                        else:
-                            answer = candidate['content']['parts'][0]['text']
-                            st.session_state.chat_history.append(f"**Model:** {answer}")
-                            st.success("Answer generated successfully!")
-                            st.write(answer)
-                    except KeyError as e:
-                        st.error(f"Error in accessing response content: {e}")
-                else:
-                    st.error(f"Error in API response: {json.dumps(response, indent=2)}")
+            response = query_gemini(api_key, question, query_context)
 
-    # User feedback
-    feedback = st.text_area("Provide feedback on the answer:", "")
-    if st.button("Submit Feedback"):
-        st.write("Thank you for your feedback!")
+            if 'candidates' in response and response['candidates']:
+                try:
+                    candidate = response['candidates'][0]
+                    if candidate.get('finishReason') == 'SAFETY':
+                        st.warning("The response was flagged for safety reasons and could not be processed.")
+                    else:
+                        answer = candidate['content']['parts'][0]['text']
+                        st.session_state.chat_history.append(f"**Model:** {answer}")
+                        st.success("Answer generated successfully!")
+                        st.write(answer)
+                except KeyError as e:
+                    st.error(f"Error in accessing response content: {e}")
+            else:
+                st.error(f"Error in API response: {json.dumps(response, indent=2)}")
+
+# User feedback
+feedback = st.text_area("Provide feedback on the answer:", "")
+if st.button("Submit Feedback"):
+    st.write("Thank you for your feedback!")
 
 # Styling
 st.markdown(
     """
     <style>
     .stApp {
-        max-width: 800px;
+        max-width: 100%;
         margin: 0 auto;
     }
     </style>
