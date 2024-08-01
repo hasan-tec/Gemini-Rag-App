@@ -114,14 +114,28 @@ with col2:
                 processing_time = time.time() - start_time
                 st.success(f"Processed {len(st.session_state.embeddings)} chunks in {processing_time:.2f} seconds.")
 
-    question = st.text_input("Ask a question about the content:")
+    # Initialize chat history
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+
+    # Display chat history
+    for message in st.session_state.chat_history:
+        st.write(message)
+
+    question = st.text_input("Ask a question:")
     if st.button("Get Answer"):
-        if not api_key or not question or 'embeddings' not in st.session_state:
-            st.warning("Please make sure you've entered the API key, scraped a URL, and asked a question.")
+        if not api_key or not question:
+            st.warning("Please enter both API key and question.")
         else:
             with st.spinner("Generating answer..."):
-                hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
-                response = query_gemini(api_key, question, hybrid_context)
+                # Check if the question is related to the parsed data
+                if 'embeddings' in st.session_state:
+                    hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
+                    response = query_gemini(api_key, question, hybrid_context)
+                else:
+                    # Use chat history as context
+                    chat_context = "\n".join(st.session_state.chat_history)
+                    response = query_gemini(api_key, question, chat_context)
 
                 if 'candidates' in response and response['candidates']:
                     try:
@@ -132,6 +146,9 @@ with col2:
                             answer = candidate['content']['parts'][0]['text']
                             st.success("Answer generated successfully!")
                             st.write(answer)
+                            # Add question and answer to chat history
+                            st.session_state.chat_history.append(f"**User:** {question}")
+                            st.session_state.chat_history.append(f"**Assistant:** {answer}")
                     except KeyError as e:
                         st.error(f"Error in accessing response content: {e}")
                 else:
