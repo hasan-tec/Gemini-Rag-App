@@ -121,11 +121,16 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
 # Display chat history
+chat_container = st.empty()
 for message in st.session_state.chat_history:
-    st.write(message)
+    if message.startswith("**User:**"):
+        chat_container.write(f"<div style='text-align: right; margin-bottom: 10px;'>{message}</div>", unsafe_allow_html=True)
+    else:
+        chat_container.write(f"<div style='text-align: left; margin-bottom: 10px;'>{message}</div>", unsafe_allow_html=True)
 
-question = st.text_input("Ask a question:")
-if st.button("Get Answer"):
+# Input field
+question = st.text_input("Ask a question:", key="question")
+if st.button("Send"):
     if not api_key or not question:
         st.warning("Please enter both API key and question.")
     else:
@@ -147,10 +152,14 @@ if st.button("Get Answer"):
                     else:
                         answer = candidate['content']['parts'][0]['text']
                         st.success("Answer generated successfully!")
-                        st.write(answer)
                         # Add question and answer to chat history
                         st.session_state.chat_history.append(f"**User:** {question}")
                         st.session_state.chat_history.append(f"**Assistant:** {answer}")
+                        # Update chat container
+                        chat_container.write(f"<div style='text-align: right; margin-bottom: 10px;'>**User:** {question}</div>", unsafe_allow_html=True)
+                        chat_container.write(f"<div style='text-align: left; margin-bottom: 10px;'>**Assistant:** {answer}</div>", unsafe_allow_html=True)
+                        # Clear input field
+                        st.session_state.question = ""
                 except KeyError as e:
                     st.error(f"Error in accessing response content: {e}")
             else:
