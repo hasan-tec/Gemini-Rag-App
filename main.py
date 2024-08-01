@@ -57,12 +57,12 @@ def get_embedding(api_key, text, model="embedding-001"):
         st.error(f"Error in embedding API response: {json.dumps(result, indent=2)}")
         return None
 
-def query_gemini(api_key, question, context):
+def query_gemini(api_key, question, context=None):
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {"Content-Type": "application/json"}
     data = {
         "contents": [
-            {"parts": [{"text": f"Context: {context}\n\nQuestion: {question}"}]}
+            {"parts": [{"text": f"Context: {context}\n\nQuestion: {question}"}]} if context else {"parts": [{"text": question}]}
         ]
     }
     response = requests.post(url, headers=headers, params={"key": api_key}, json=data)
@@ -114,14 +114,21 @@ with col2:
                 processing_time = time.time() - start_time
                 st.success(f"Processed {len(st.session_state.embeddings)} chunks in {processing_time:.2f} seconds.")
 
-    question = st.text_input("Ask a question about the content:")
-    if st.button("Get Answer"):
-        if not api_key or not question or 'embeddings' not in st.session_state:
-            st.warning("Please make sure you've entered the API key, scraped a URL, and asked a question.")
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+
+    question = st.text_input("Ask a question:")
+    if st.button("Ask"):
+        if not api_key or not question:
+            st.warning("Please enter both API key and question.")
         else:
             with st.spinner("Generating answer..."):
-                hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
-                response = query_gemini(api_key, question, hybrid_context)
+                st.session_state.chat_history.append({"user": question})
+                if 'embeddings' in st.session_state:
+                    hybrid_context = get_hybrid_context(st.session_state.chunks, question, api_key)
+                    response = query_gemini(api_key, question, hybrid_context)
+                else:
+                    response = query_gemini(api_key, question)
 
                 if 'candidates' in response and response['candidates']:
                     try:
@@ -130,12 +137,21 @@ with col2:
                             st.warning("The response was flagged for safety reasons and could not be processed.")
                         else:
                             answer = candidate['content']['parts'][0]['text']
+                            st.session_state.chat_history.append({"bot": answer})
                             st.success("Answer generated successfully!")
                             st.write(answer)
                     except KeyError as e:
                         st.error(f"Error in accessing response content: {e}")
                 else:
                     st.error(f"Error in API response: {json.dumps(response, indent=2)}")
+
+    # Display chat history
+    st.markdown("## Chat History")
+    for message in st.session_state.chat_history:
+        if 'user' in message:
+            st.markdown(f"**You:** {message['user']}")
+        elif 'bot' in message:
+            st.markdown(f"**Bot:** {message['bot']}")
 
     # User feedback
     feedback = st.text_area("Provide feedback on the answer:", "")
