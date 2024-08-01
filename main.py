@@ -1,15 +1,1 @@
-my-nextjs-app/
-  - backend/
-    - api/
-      - get_embedding.py
-      - query_gemini.py
-      - process_content.py
-    - server.py
-  - pages/
-    - api/
-      - [your API routes]
-    - index.js
-    - [other pages]
-  - public/
-    - [static assets]
-  - ...
+main.py
